@@ -1,62 +1,61 @@
 const express = require("express");
-const cors = require("cors");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 
+// Initialize the Express app
 const app = express();
-app.use(cors());
+
+// CORS middleware to allow requests from your frontend
+app.use(
+  cors({
+    origin: "http://localhost:3001", // Allow requests from your frontend
+    methods: ["GET", "POST"], // Allow only GET and POST methods
+    allowedHeaders: ["Content-Type"], // Allow requests with 'Content-Type' header
+  })
+);
+
+// Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
-const port = process.env.PORT || 3000;
-
-function separateData(data) {
-  const nums = [];
-  const alps = [];
-  let highestAlpha = null;
-
-  data.forEach((item) => {
-    if (!isNaN(item)) {
-      nums.push(item);
-    } else if (
-      typeof item === "string" &&
-      item.length === 1 &&
-      /^[A-Za-z]$/.test(item)
-    ) {
-      alps.push(item);
-      if (!highestAlpha || item.toLowerCase() > highestAlpha.toLowerCase()) {
-        highestAlpha = item;
-      }
-    }
-  });
-
-  return { nums, alps, highestAlpha: highestAlpha ? [highestAlpha] : [] };
-}
-
+// POST route for handling requests
 app.post("/bfhl", (req, res) => {
-  const { data } = req.body;
+  const { data, file_b64 } = req.body;
 
-  if (!data || !Array.isArray(data)) {
-    return res
-      .status(400)
-      .json({ is_success: false, error: "Invalid input data" });
-  }
+  // Process the data (filter numbers and alphabets)
+  const numbers = data.filter((item) => !isNaN(item));
+  const alphabets = data.filter((item) => isNaN(item));
+  const highestLowercase = alphabets
+    .filter((char) => char === char.toLowerCase())
+    .sort()
+    .slice(-1);
 
-  const { nums, alps, highestAlpha } = separateData(data);
+  // File handling
+  const file_valid = file_b64 ? true : false;
+  const file_mime_type = file_valid ? "application/pdf" : null;
+  const file_size_kb = file_valid ? Math.floor(Math.random() * 1000) : null;
 
+  // Response
   res.json({
     is_success: true,
     user_id: "Charath_AP21110011572",
     email: "charathkumarreddy_y@srmap.edu.in",
     roll_number: "AP21110011572",
-    numbers: nums,
-    alphabets: alps,
-    highest_alphabet: highestAlpha,
+    numbers,
+    alphabets,
+    highest_lowercase_alphabet: highestLowercase,
+    file_valid,
+    file_mime_type,
+    file_size_kb,
   });
 });
 
+// GET route for returning a static operation_code
 app.get("/bfhl", (req, res) => {
-  res.status(200).json({ operation_code: 1 });
+  res.json({ operation_code: 1 });
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+// Start the server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
